@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#020617">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>🎬 Rename Tracker</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  html, body { overscroll-behavior-y: none; }
+  body {
+    -webkit-tap-highlight-color: transparent;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Inter, system-ui, sans-serif;
+    background-color: #020617;
+  }
+  button { touch-action: manipulation; }
+  input[type=number]::-webkit-inner-spin-button,
+  input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+  input[type=number] { -moz-appearance: textfield; }
+  .pb-safe { padding-bottom: calc(env(safe-area-inset-bottom) + 1.25rem); }
+  .pt-safe { padding-top: calc(env(safe-area-inset-top) + 0.75rem); }
+  ::-webkit-scrollbar { width: 0; height: 0; }
+  .fade-in { animation: fadeIn .18s ease-out; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+</style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen antialiased selection:bg-emerald-500/30">
+
+<div class="max-w-md mx-auto px-4 pt-safe pb-28">
+
+  <!-- ================= HEADER ================= -->
+  <header class="flex items-center justify-between mb-4">
+    <div class="min-w-0">
+      <h1 class="text-xl font-bold tracking-tight truncate">🎬 Rename Tracker</h1>
+      <p class="text-[11px] text-slate-500">Трекер переименования видео</p>
+    </div>
+    <button id="btnSettings"
+      class="shrink-0 w-11 h-11 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-center text-lg active:scale-95 transition shadow-lg shadow-black/40">
+      ⚙️
+    </button>
+  </header>
+
+  <!-- ================= STATS ================= -->
+  <section class="rounded-2xl bg-slate-900/80 border border-slate-800 p-5 shadow-2xl shadow-black/40 backdrop-blur mb-4">
+    <div class="text-[10px] uppercase tracking-[0.18em] text-slate-500 mb-1">Заработано всего</div>
+    <div id="earned" class="text-[42px] leading-none font-bold tabular-nums text-emerald-400 drop-shadow-[0_0_18px_rgba(16,185,129,0.25)]">
+      0,00 €
+    </div>
+
+    <div class="mt-5">
+      <div class="flex justify-between items-baseline text-[11px] text-slate-400 mb-2">
+        <span>Прогресс архива</span>
+        <span id="progressPct" class="font-semibold text-slate-200 tabular-nums">0.0%</span>
+      </div>
+      <div class="h-3 rounded-full bg-slate-800/90 overflow-hidden">
+        <div id="progressBar"
+          class="h-full rounded-full bg-gradient-to-r from-emerald-500 to-teal-400 transition-[width] duration-500 ease-out"
+          style="width:0%"></div>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-2 gap-3 mt-5">
+      <div class="rounded-xl bg-slate-950/70 border border-slate-800 p-3">
+        <div class="text-[10px] uppercase tracking-wider text-slate-500">Выполнено</div>
+        <div id="doneFiles" class="text-2xl font-bold tabular-nums text-slate-100 mt-0.5">0</div>
+      </div>
+      <div class="rounded-xl bg-slate-950/70 border border-slate-800 p-3">
+        <div class="text-[10px] uppercase tracking-wider text-slate-500">Осталось файлов</div>
+        <div id="leftFiles" class="text-2xl font-bold tabular-nums text-amber-400 mt-0.5">17 500</div>
+      </div>
+    </div>
+
+    <div class="mt-4 pt-4 border-t border-slate-800 space-y-2 text-sm">
+      <div class="flex justify-between gap-3">
+        <span class="text-slate-400">Макс. потенциал архива</span>
+        <span id="maxPotential" class="font-semibold tabular-nums">1 750,00 €</span>
+      </div>
+      <div class="flex justify-between gap-3">
+        <span class="text-slate-400">Осталось заработать</span>
+        <span id="leftMoney" class="font-semibold tabular-nums text-amber-400">1 750,00 €</span>
+      </div>
+      <div class="flex justify-between gap-3">
+        <span class="text-slate-400">Ставка за файл</span>
+        <span id="rateView" class="font-semibold tabular-nums text-slate-300">0,10 €</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= SESSION ================= -->
+  <section class="rounded-2xl bg-slate-900/80 border border-slate-800 p-5 shadow-2xl shadow-black/40 backdrop-blur mb-4">
+    <div class="flex items-center justify-between mb-3">
+      <div class="text-[10px] uppercase tracking-[0.18em] text-slate-500">Общая сессия</div>
+      <div id="sessionDot" class="w-2.5 h-2.5 rounded-full bg-slate-700"></div>
+    </div>
+    <div id="sessionTime" class="text-[38px] leading-none font-bold tabular-nums text-center text-slate-100 mb-5">00:00:00</div>
+    <div class="grid grid-cols-2 gap-3">
+      <button id="btnSessionStart"
+        class="py-3.5 rounded-xl bg-emerald-500 text-slate-950 font-semibold text-sm active:scale-95 transition shadow-lg shadow-emerald-500/20 disabled:opacity-40 disabled:shadow-none">
+        ▶ Старт сессии
+      </button>
+      <button id="btnSessionStop"
+        class="py-3.5 rounded-xl bg-slate-800 border border-slate-700 text-slate-200 font-semibold text-sm active:scale-95 transition disabled:opacity-40">
+        ⏹ Стоп сессия
+      </button>
+    </div>
+  </section>
+
+  <!-- ================= WORK BLOCK ================= -->
+  <section id="workBlock"
+    class="rounded-2xl bg-slate-900/80 border border-slate-800 p-5 shadow-2xl shadow-black/40 backdrop-blur mb-4 transition-all duration-300">
+
+    <div class="flex items-center justify-between mb-3">
+      <div class="text-[10px] uppercase tracking-[0.18em] text-slate-500">Текущий файл</div>
+      <div id="fileDot" class="w-2.5 h-2.5 rounded-full bg-slate-700"></div>
+    </div>
+
+    <div id="fileTime" class="text-[38px] leading-none font-bold tabular-nums text-center text-slate-100 mb-5">00:00:00</div>
+
+    <div class="grid grid-cols-2 gap-3 mb-3">
+      <button id="btnFileStart"
+        class="py-3 rounded-xl bg-slate-800 border border-slate-700 text-slate-200 font-semibold text-[13px] active:scale-95 transition disabled:opacity-40">
+        ▶ Старт работы
+      </button>
+      <button id="btnFilePause"
+        class="py-3 rounded-xl bg-slate-800 border border-slate-700 text-slate-200 font-semibold text-[13px] active:scale-95 transition disabled:opacity-40">
+        ⏸ Пауза (туалет)
+      </button>
+    </div>
+
+    <button id="btnDone"
+      class="w-full py-4 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 font-bold text-[15px] active:scale-95 transition shadow-lg shadow-emerald-500/25">
+      ✅ Видео переименовано (+1)
+    </button>
+
+    <button id="btnUndo"
+      class="w-full mt-3 py-3 rounded-xl bg-slate-800/70 border border-slate-700/70 text-slate-300 font-medium text-[13px] active:scale-95 transition">
+      ↩ Отменить последнее
+    </button>
+
+    <div class="mt-5 pt-4 border-t border-slate-800 grid grid-cols-2 gap-3 text-center">
+      <div>
+        <div class="text-[10px] uppercase tracking-wider text-slate-500">Средний темп</div>
+        <div id="avgPace" class="text-base font-bold tabular-nums text-slate-200 mt-0.5">—</div>
+      </div>
+      <div>
+        <div class="text-[10px] uppercase tracking-wider text-slate-500">Файлов за сессию</div>
+        <div id="sessionFiles" class="text-base font-bold tabular-nums text-slate-200 mt-0.5">0</div>
+      </div>
+    </div>
+
+    <div id="lockHint" class="mt-4 text-center text-[11px] text-amber-400/80">
+      🔒 Запустите общую сессию, чтобы разблокировать работу
+    </div>
+  </section>
+
+  <!-- ================= GOALS ================= -->
+  <section class="rounded-2xl bg-slate-900/80 border border-slate-800 p-5 shadow-2xl shadow-black/40 backdrop-blur mb-4">
+    <div class="flex items-center justify-between mb-4">
+      <div class="text-[10px] uppercase tracking-[0.18em] text-slate-500">🎯 Копилка мечты</div>
+      <button id="btnAddGoal"
+        class="text-[11px] px-3 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 font-semibold active:scale-95 transition">
+        + Добавить цель
+      </button>
+    </div>
+
+    <div id="goalsList" class="space-y-3"></div>
+    <div id="goalsEmpty" class="text-center text-slate-600 text-sm py-8">
+      Пока нет целей.<br>Добавьте первую мечту ✨
+    </div>
+
+    <div id="goalsSummary" class="mt-5 pt-4 border-t border-slate-800 space-y-2 text-sm"></div>
+  </section>
+
+  <div class="text-center text-[10px] text-slate-700 pb-4">
+    Данные сохраняются локально в браузере
+  </div>
+</div>
+
+<!-- ================= GOAL MODAL ================= -->
+<div id="goalModal" class="fixed inset-0 z-50 items-end sm:items-center justify-center p-0 sm:p-4" style="display:none">
+  <div class="absolute inset-0 bg-black/70 backdrop-blur-sm" data-close></div>
+  <div class="relative w-full max-w-md mx-auto rounded-t-3xl sm:rounded-2xl bg-slate-900 border border-slate-800 p-5 pb-safe sm:pb-5 shadow-2xl fade-in">
+    <div class="w-10 h-1 rounded-full bg-slate-700 mx-auto mb-5 sm:hidden"></div>
+    <form id="goalForm" class="space-y-4">
+      <h3 id="goalModalTitle" class="text-lg font-bold">Новая цель</h3>
+
+      <div class="flex gap-3">
+        <div class="w-20 shrink-0">
+          <label class="text-[10px] uppercase tracking-wider text-slate-500">Эмодзи</label>
+          <input id="goalEmoji" type="text" maxlength="6" placeholder="🎯"
+            class="mt-1 w-full text-center text-2xl rounded-xl bg-slate-950 border border-slate-800 py-2.5 outline-none focus:border-emerald-500 transition">
+        </div>
+        <div class="flex-1 min-w-0">
+          <label class="text-[10px] uppercase tracking-wider text-slate-500">Название</label>
+          <input id="goalName" type="text" placeholder="Машина мечты" autocomplete="off"
+            class="mt-1 w-full rounded-xl bg-slate-950 border border-slate-800 px-3 py-3 text-base outline-none focus:border-emerald-500 transition">
+        </div>
+      </div>
+
+      <div>
+        <label class="text-[10px] uppercase tracking-wider text-slate-500">Сумма, €</label>
+        <input id="goalAmount" type="number" inputmode="decimal" step="0.01" min="0" placeholder="1000"
+          class="mt-1 w-full rounded-xl bg-slate-950 border border-slate-800 px-3 py-3 text-base outline-none focus:border-emerald-500 transition">
+      </div>
+
+      <div>
+        <label class="text-[10px] uppercase tracking-wider text-slate-500">Быстрый выбор</label>
+        <div id="emojiQuick" class="mt-2 flex flex-wrap gap-2"></div>
+      </div>
+
+      <div class="flex gap-3 pt-1">
+        <button type="button" data-close
+          class="flex-1 py-3.5 rounded-xl bg-slate-800 text-slate-300 text-sm font-medium active:scale-95 transition">Отмена</button>
+        <button type="submit"
+          class="flex-1 py-3.5 rounded-xl bg-emerald-500 text-slate-950 font-semibold text-sm active:scale-95 transition">Сохранить</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ================= SETTINGS MODAL ================= -->
+<div id="settingsModal" class="fixed inset-0 z-50 items-end sm:items-center justify-center p-0 sm:p-4" style="display:none">
+  <div class="absolute inset-0 bg-black/70 backdrop-blur-sm" data-close></div>
+  <div class="relative w-full max-w-md mx-auto rounded-t-3xl sm:rounded-2xl bg-slate-900 border border-slate-800 p-5 pb-safe sm:pb-5 shadow-2xl fade-in">
+    <div class="w-10 h-1 rounded-full bg-slate-700 mx-auto mb-5 sm:hidden"></div>
+    <form id="settingsForm" class="space-y-4">
+      <h3 class="text-lg font-bold">⚙️ Настройки</h3>
+
+      <div>
+        <label class="text-[10px] uppercase tracking-wider text-slate-500">Всего файлов в папке</label>
+        <input id="setTotal" type="number" inputmode="numeric" step="1" min="1"
+          class="mt-1 w-full rounded-xl bg-slate-950 border border-slate-800 px-3 py-3 text-base outline-none focus:border-emerald-500 transition">
+      </div>
+
+      <div>
+        <label class="text-[10px] uppercase tracking-wider text-slate-500">Оплата за 1 файл, €</label>
+        <input id="setRate" type="number" inputmode="decimal" step="0.01" min="0"
+          class="mt-1 w-full rounded-xl bg-slate-950 border border-slate-800 px-3 py-3 text-base outline-none focus:border-emerald-500 transition">
+      </div>
+
+      <div class="rounded-xl bg-slate-950/70 border border-slate-800 p-3 text-[12px] text-slate-400 leading-relaxed">
+        Изменение ставки не влияет на уже заработанные деньги — только на максимальный потенциал архива.
+      </div>
+
+      <div class="flex gap-3 pt-1">
+        <button type="button" data-close
+          class="flex-1 py-3.5 rounded-xl bg-slate-800 text-slate-300 text-sm font-medium active:scale-95 transition">Отмена</button>
+        <button type="submit"
+          class="flex-1 py-3.5 rounded-xl bg-emerald-500 text-slate-950 font-semibold text-sm active:scale-95 transition">Сохранить</button>
+      </div>
+
+      <button type="button" id="btnResetAll"
+        class="w-full py-3.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 font-semibold text-sm active:scale-95 transition">
+        🗑 Сбросить весь прогресс
+      </button>
+    </form>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   STATE
+   ============================================================ */
+const LS_KEY = 'renameTracker_v1';
+
+const defaultState = () => ({
+  totalFiles: 17500,
+  rate: 0.10,
+  doneFiles: 0,
+  earned: 0,
+  history: [],                       // [{ t: секунды, a: сумма }]
+  session:   { running: false, startTs: null, elapsed: 0, startDone: 0 },
+  fileTimer: { running: false, startTs: null, elapsed: 0 },
+  goals: []                          // [{ id, emoji, name, amount, active }]
+});
+
+let state = loadState();
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    if (!raw) return defaultState();
+    const p = JSON.parse(raw);
+    const d = defaultState();
+    const s = {
+      ...d,
+      ...p,
+      session:   { ...d.session,   ...(p.session   || {}) },
+      fileTimer: { ...d.fileTimer, ...(p.fileTimer || {}) },
+      goals:     Array.isArray(p.goals)   ? p.goals   : [],
+      history:   Array.isArray(p.history) ? p.history : []
+    };
+    // защита от «висящих» таймеров после закрытия вкладки
+    if (s.session.running)   { s.session.startTs   = Date.now(); }
+    if (s.fileTimer.running) { s.fileTimer.startTs = Date.now(); }
+    s.totalFiles = Math.max(1, Number(s.totalFiles) || 17500);
+    s.rate       = Math.max(0, Number(s.rate) || 0);
+    s.doneFiles  = Math.max(0, Number(s.doneFiles) || 0);
+    s.earned     = Math.max(0, Number(s.earned) || 0);
+    return s;
+  } catch (e) {
+    return defaultState();
+  }
+}
+
+let saveTimer = null;
+function save() {
+  try { localStorage.setItem(LS_KEY, JSON.stringify(state)); } catch (e) {}
+}
+
+/* ============================================================
+   HELPERS
+   ============================================================ */
+const $ = id => document.getElementById(id);
+
+const nfMoney = new Intl.NumberFormat('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const nfInt   = new Intl.NumberFormat('ru-RU');
+
+const fmt     = n => nfMoney.format(n) + ' €';
+const fmtInt  = n => nfInt.format(n);
+
+function fmtTime(ms) {
+  const total = Math.max(0, Math.floor(ms / 1000));
+  const h = String(Math.floor(total / 3600)).padStart(2, '0');
+  const m = String(Math.floor((total % 3600) / 60)).padStart(2, '0');
+  const s = String(total % 60).padStart(2, '0');
+  return `${h}:${m}:${s}`;
+}
+
+function fmtPace(sec) {
+  if (!sec || !isFinite(sec)) return '—';
+  if (sec < 60) return sec.toFixed(1) + ' с';
+  const m = Math.floor(sec / 60);
+  const s = Math.round(sec % 60);
+  return `${m} м ${s} с`;
+}
+
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+
+function buzz(ms) {
+  try { if (navigator.vibrate) navigator.vibrate(ms); } catch (e) {}
+}
+
+/* ============================================================
+   TIMERS
+   ============================================================ */
+function sessionElapsedMs() {
+  return state.session.elapsed + (state.session.running ? Date.now() - state.session.startTs : 0);
+}
+function fileElapsedMs() {
+  return state.fileTimer.elapsed + (state.fileTimer.running ? Date.now() - state.fileTimer.startTs : 0);
+}
+
+/* каждый тик «сворачиваем» прошедшее время в elapsed — так ничего не теряется
+   при троттлинге таймеров Safari и при перезагрузке страницы */
+setInterval(() => {
+  const now = Date.now();
+  if (state.session.running)   { state.session.elapsed   = sessionElapsedMs();   state.session.startTs   = now; }
+  if (state.fileTimer.running) { state.fileTimer.elapsed = fileElapsedMs();      state.fileTimer.startTs = now; }
+  renderTimers();
+  save();
+}, 1000);
+
+document.addEventListener('visibilitychange', () => { if (document.hidden) save(); });
+window.addEventListener('pagehide', save);
+
+/* ============================================================
+   SESSION ACTIONS
+   ============================================================ */
+function startSession() {
+  if (state.session.running) return;
+  state.session.running   = true;
+  state.session.startTs   = Date.now();
+  state.session.startDone = state.doneFiles;
+  save(); renderAll(); buzz(15);
+}
+
+function stopSession() {
+  if (!state.session.running) return;
+  state.session.elapsed = sessionElapsedMs();
+  state.session.running = false;
+  state.session.startTs = null;
+  // ставим на паузу и замер текущего файла
+  if (state.fileTimer.running) {
+    state.fileTimer.elapsed = fileElapsedMs();
+    state.fileTimer.running = false;
+    state.fileTimer.startTs = null;
+  }
+  save(); renderAll(); buzz(15);
+}
+
+function startFile() {
+  if (!state.session.running || state.fileTimer.running) return;
+  state.fileTimer.running = true;
+  state.fileTimer.startTs = Date.now();
+  save(); renderAll();
+}
+
+function pauseFile() {
+  if (!state.fileTimer.running) return;
+  state.fileTimer.elapsed = fileElapsedMs();
+  state.fileTimer.running = false;
+  state.fileTimer.startTs = null;
+  save(); renderAll(); buzz(10);
+}
+
+function markDone() {
+  if (!state.session.running) return;
+  if (state.doneFiles >= state.totalFiles) { buzz([10, 40, 10]); return; }
+
+  const secs = fileElapsedMs() / 1000;
+  state.history.push({ t: secs, a: state.rate });
+  state.doneFiles += 1;
+  state.earned    += state.rate;
+
+  // сброс замера на ноль и сразу продолжаем
+  state.fileTimer = { running: true, startTs: Date.now(), elapsed: 0 };
+
+  save(); renderAll(); buzz(18);
+}
+
+function undoLast() {
+  if (!state.history.length) return;
+  const last = state.history.pop();
+  state.doneFiles = Math.max(0, state.doneFiles - 1);
+  state.earned    = Math.max(0, state.earned - last.a);
+  // возвращаем замер обратно, чтобы удобно исправить
+  state.fileTimer = { running: false, startTs: null, elapsed: Math.max(0, last.t * 1000) };
+  save(); renderAll(); buzz(25);
+}
+
+/* ============================================================
+   GOALS MATH
+   ============================================================ */
+function computeGoals() {
+  const active     = state.goals.filter(g => g.active);
+  const sumActive  = active.reduce((a, g) => a + (Number(g.amount) || 0), 0);
+  const pool       = state.earned;
+
+  const list = state.goals.map(g => {
+    const amount = Math.max(0, Number(g.amount) || 0);
+    let allocated = 0;
+    if (g.active && sumActive > 0 && amount > 0) {
+      allocated = Math.min(amount, pool * (amount / sumActive));
+    }
+    const pct       = amount > 0 ? Math.min(100, (allocated / amount) * 100) : 0;
+    const remaining = Math.max(0, amount - allocated);
+    const done      = amount > 0 && allocated >= amount - 0.000001;
+    return { ...g, amount, allocated, pct, remaining, done };
+  });
+
+  const sumAllocated = list.reduce((a, g) => a + g.allocated, 0);
+  return { list, sumActive, sumAllocated, activeCount: active.length };
+}
+
+/* ============================================================
+   RENDER
+   ============================================================ */
+function renderTimers() {
+  $('sessionTime').textContent = fmtTime(sessionElapsedMs());
+  $('fileTime').textContent    = fmtTime(fileElapsedMs());
+}
+
+function renderStats() {
+  const total   = state.totalFiles;
+  const done    = Math.min(state.doneFiles, total);
+  const left    = Math.max(0, total - state.doneFiles);
+  const maxPot  = total * state.rate;
+  const pct     = total > 0 ? Math.min(100, (done / total) * 100) : 0;
+
+  $('earned').textContent        = fmt(state.earned);
+  $('maxPotential').textContent  = fmt(maxPot);
+  $('leftMoney').textContent     = fmt(Math.max(0, maxPot - state.earned));
+  $('rateView').textContent      = fmt(state.rate);
+  $('doneFiles').textContent     = fmtInt(state.doneFiles);
+  $('leftFiles').textContent     = fmtInt(left);
+  $('progressPct').textContent   = pct.toFixed(1) + '%';
+  $('progressBar').style.width   = pct.toFixed(2) + '%';
+
+  // средний темп
+  const avg = state.history.length
+    ? state.history.reduce((a, h) => a + h.t, 0) / state.history.length
+    : 0;
+  $('avgPace').textContent = fmtPace(avg);
+
+  // файлов за сессию
+  const sessionDone = Math.max(0, state.doneFiles - (state.session.startDone || 0));
+  $('sessionFiles').textContent = fmtInt(sessionDone);
+}
+
+function renderSessionUI() {
+  const running = state.session.running;
+
+  $('sessionDot').className = 'w-2.5 h-2.5 rounded-full transition-colors ' +
+    (running ? 'bg-emerald-400 animate-pulse shadow-[0_0_10px_rgba(52,211,153,0.8)]' : 'bg-slate-700');
+
+  $('btnSessionStart').disabled = running;
+  $('btnSessionStop').disabled  = !running;
+
+  // блокировка рабочего блока
+  const wb = $('workBlock');
+  wb.classList.toggle('opacity-50', !running);
+  wb.classList.toggle('pointer-events-none', !running);
+  $('lockHint').style.display = running ? 'none' : 'block';
+
+  const fr = state.fileTimer.running;
+  $('fileDot').className = 'w-2.5 h-2.5 rounded-full transition-colors ' +
+    (fr ? 'bg-emerald-400 animate-pulse shadow-[0_0_10px_rgba(52,211,153,0.8)]' : 'bg-slate-700');
+
+  $('btnFileStart').disabled = !running || fr;
+  $('btnFilePause').disabled = !fr;
+  $('btnDone').disabled      = !running;
+  $('btnUndo').disabled      = state.history.length === 0;
+}
+
+function renderGoals() {
+  const { list, sumActive, sumAllocated, activeCount } = computeGoals();
+  const maxPot = state.totalFiles * state.rate;
+
+  $('goalsEmpty').classList.toggle('hidden', list.length > 0);
+  $('goalsSummary').classList.toggle('hidden', list.length === 0);
+
+  $('goalsList').innerHTML = list.map(g => `
+    <div class="rounded-xl border p-3 transition-all duration-200 ${
+      g.active ? 'bg-slate-950/70 border-slate-800' : 'bg-slate-950/30 border-slate-800/60 opacity-55'
+    }">
+      <div class="flex items-center gap-3">
+        <div class="text-2xl leading-none shrink-0 w-8 text-center">${esc(g.emoji || '🎯')}</div>
+        <div class="flex-1 min-w-0">
+          <div class="font-semibold text-sm truncate">${esc(g.name || 'Без названия')}</div>
+          <div class="text-[11px] text-slate-500 tabular-nums mt-0.5">${fmt(g.allocated)} / ${fmt(g.amount)}</div>
+        </div>
+        <button data-act="toggle" data-id="${esc(g.id)}"
+          class="relative shrink-0 w-11 h-6 rounded-full transition-colors duration-200 ${
+            g.active ? 'bg-emerald-500' : 'bg-slate-700'
+          }">
+          <span class="absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform duration-200 ${
+            g.active ? 'translate-x-5' : 'translate-x-0'
+          }"></span>
+        </button>
+      </div>
+
+      <div class="mt-2.5 h-2 rounded-full bg-slate-800 overflow-hidden">
+        <div class="h-full rounded-full transition-[width] duration-500 ease-out ${
+          g.done ? 'bg-gradient-to-r from-emerald-400 to-teal-300' : 'bg-gradient-to-r from-emerald-500 to-teal-400'
+        }" style="width:${g.pct.toFixed(2)}%"></div>
+      </div>
+
+      <div class="mt-2 flex items-center justify-between gap-2">
+        <span class="text-[11px] tabular-nums truncate ${
+          g.done ? 'text-emerald-400 font-semibold' : 'text-slate-400'
+        }">
+          ${g.done ? '🎉 Готово!' : g.pct.toFixed(1) + '% · осталось ' + fmt(g.remaining)}
+        </span>
+        <div class="flex gap-1.5 shrink-0">
+          <button data-act="edit" data-id="${esc(g.id)}"
+            class="w-8 h-8 rounded-lg bg-slate-800/70 text-slate-400 text-xs active:scale-90 transition flex items-center justify-center">✏️</button>
+          <button data-act="del" data-id="${esc(g.id)}"
+            class="w-8 h-8 rounded-lg bg-slate-800/70 text-slate-400 text-xs active:scale-90 transition flex items-center justify-center">🗑</button>
+        </div>
+      </div>
+    </div>
+  `).join('');
+
+  const over = maxPot - sumActive;
+  $('goalsSummary').innerHTML = `
+    <div class="flex justify-between gap-3">
+      <span class="text-slate-400">Активных целей</span>
+      <span class="font-semibold tabular-nums">${activeCount} из ${list.length}</span>
+    </div>
+    <div class="flex justify-between gap-3">
+      <span class="text-slate-400">Сумма активных целей</span>
+      <span class="font-semibold tabular-nums">${fmt(sumActive)}</span>
+    </div>
+    <div class="flex justify-between gap-3">
+      <span class="text-slate-400">Накоплено по целям</span>
+      <span class="font-semibold tabular-nums text-emerald-400">${fmt(sumAllocated)}</span>
+    </div>
+    <div class="flex justify-between gap-3">
+      <span class="text-slate-400">Останется сверх целей</span>
+      <span class="font-semibold tabular-nums ${over < 0 ? 'text-rose-400' : 'text-slate-200'}">${fmt(over)}</span>
+    </div>
+    ${over < 0 ? `<div class="text-[11px] text-rose-400/90 pt-1">⚠️ Сумма целей превышает потенциал архива на ${fmt(Math.abs(over))}</div>` : ''}
+  `;
+}
+
+function renderAll() {
+  renderTimers();
+  renderStats();
+  renderSessionUI();
+  renderGoals();
+}
+
+/* ============================================================
+   MODALS
+   ============================================================ */
+function openModal(el) {
+  el.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+}
+function closeModal(el) {
+  el.style.display = 'none';
+  document.body.style.overflow = '';
+}
+
+document.querySelectorAll('[data-close]').forEach(el => {
+  el.addEventListener('click', e => {
+    const modal = e.target.closest('#goalModal, #settingsModal');
+    if (modal) closeModal(modal);
+  });
+});
+
+/* ---------- GOAL MODAL ---------- */
+const QUICK_EMOJI = ['🎁','🚗','🏠','✈️','📱','💻','🎓','💍'];
+$('emojiQuick').innerHTML = QUICK_EMOJI.map(e =>
+  `<button type="button" data-emoji="${e}" class="w-9 h-9 rounded-lg bg-slate-800/70 border border-slate-700 text-lg active:scale-90 transition">${e}</button>`
+).join('');
+
+$('emojiQuick').addEventListener('click', e => {
+  const b = e.target.closest('[data-emoji]');
+  if (!b) return;
+  $('goalEmoji').value = b.dataset.emoji;
+});
+
+let editingGoalId = null;
+
+function openGoalModal(goal) {
+  editingGoalId = goal ? goal.id : null;
+  $('goalModalTitle').textContent = goal ? 'Редактировать цель' : 'Новая цель';
+  $('goalEmoji').value  = goal ? (goal.emoji || '') : '';
+  $('goalName').value   = goal ? (goal.name || '') : '';
+  $('goalAmount').value = goal ? (goal.amount ?? '') : '';
+  openModal($('goalModal'));
+  setTimeout(() => $('goalName').focus(), 120);
+}
+
+$('btnAddGoal').addEventListener('click', () => openGoalModal(null));
+
+$('goalForm').addEventListener('submit', e => {
+  e.preventDefault();
+  const emoji  = $('goalEmoji').value.trim() || '🎯';
+  const name   = $('goalName').value.trim() || 'Без названия';
+  const amount = Math.max(0, parseFloat(String($('goalAmount').value).replace(',', '.')) || 0);
+
+  if (amount <= 0) {
+    $('goalAmount').focus();
+    $('goalAmount').classList.add('border-rose-500');
+    setTimeout(() => $('goalAmount').classList.remove('border-rose-500'), 1200);
+    return;
+  }
+
+  if (editingGoalId !== null) {
+    const g = state.goals.find(x => String(x.id) === String(editingGoalId));
+    if (g) { g.emoji = emoji; g.name = name; g.amount = amount; }
+  } else {
+    state.goals.push({
+      id: Date.now().toString(36) + Math.random().toString(36).slice(2, 7),
+      emoji, name, amount, active: true
+    });
+  }
+
+  save();
+  closeModal($('goalModal'));
+  renderAll();
+  buzz(15);
+});
+
+/* ---------- GOALS LIST ACTIONS (делегирование) ---------- */
+$('goalsList').addEventListener('click', e => {
+  const btn = e.target.closest('[data-act]');
+  if (!btn) return;
+  const id  = btn.dataset.id;
+  const act = btn.dataset.act;
+  const g   = state.goals.find(x => String(x.id) === String(id));
+  if (!g) return;
+
+  if (act === 'toggle') {
+    g.active = !g.active;
+    save(); renderAll(); buzz(10);
+  } else if (act === 'edit') {
+    openGoalModal(g);
+  } else if (act === 'del') {
+    if (confirm(`Удалить цель «${g.name}»?`)) {
+      state.goals = state.goals.filter(x => String(x.id) !== String(id));
+      save(); renderAll(); buzz(20);
+    }
+  }
+});
+
+/* ---------- SETTINGS MODAL ---------- */
+$('btnSettings').addEventListener('click', () => {
+  $('setTotal').value = state.totalFiles;
+  $('setRate').value  = state.rate;
+  openModal($('settingsModal'));
+});
+
+$('settingsForm').addEventListener('submit', e => {
+  e.preventDefault();
+  const total = Math.max(1, Math.floor(parseFloat($('setTotal').value) || 17500));
+  const rate  = Math.max(0, parseFloat(String($('setRate').value).replace(',', '.')) || 0);
+  state.totalFiles = total;
+  state.rate = rate;
+  save();
+  closeModal($('settingsModal'));
+  renderAll();
+  buzz(15);
+});
+
+$('btnResetAll').addEventListener('click', () => {
+  if (!confirm('Сбросить ВЕСЬ прогресс: деньги, файлы, таймеры и цели? Это действие необратимо.')) return;
+  state = defaultState();
+  try { localStorage.removeItem(LS_KEY); } catch (e) {}
+  save();
+  closeModal($('settingsModal'));
+  renderAll();
+  buzz([20, 60, 20]);
+});
+
+/* ============================================================
+   BUTTON BINDINGS
+   ============================================================ */
+$('btnSessionStart').addEventListener('click', startSession);
+$('btnSessionStop').addEventListener('click', stopSession);
+$('btnFileStart').addEventListener('click', startFile);
+$('btnFilePause').addEventListener('click', pauseFile);
+$('btnDone').addEventListener('click', markDone);
+$('btnUndo').addEventListener('click', undoLast);
+
+/* защита от случайного двойного тапа (double-tap zoom) */
+document.addEventListener('gesturestart', e => e.preventDefault());
+
+/* ============================================================
+   INIT
+   ============================================================ */
+renderAll();
+</script>
+</body>
+</html>
